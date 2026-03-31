@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sp.app.mapper.MemberMapper">
+	<select id="loginSnsMember" parameterType="map" resultType="com.sp.app.domain.dto.MemberDto">
+		SELECT m1.member_id, m1.login_id, sns_provider, sns_id, 
+			name, email,  
+			created_at, last_login, enabled
+		FROM member1 m1
+		LEFT OUTER JOIN member2 m2 ON m1.member_id = m2.member_id 
+		WHERE sns_provider = #{sns_provider} AND sns_id = #{sns_id}
+	</select>
+	
+	<select id="memberSeq" resultType="Long">
+		SELECT member_seq.NEXTVAL
+		FROM dual
+	</select>
+	
+    <insert id="insertMember1" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT INTO member1(member_id, login_id, password, sns_provider, sns_id,  
+			enabled, created_at, update_at, failure_cnt)
+		VALUES (#{member_id}, #{login_id, jdbcType=VARCHAR}, #{password, jdbcType=VARCHAR}, 
+			#{sns_provider, jdbcType=VARCHAR}, #{sns_id, jdbcType=VARCHAR}, 
+			1, SYSDATE, SYSDATE, 0) 
+    </insert>
+
+    <insert id="insertMember2" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT INTO member2(member_id, name, birth, email, receive_email, tel, 
+			profile_photo, zip, addr1, addr2, ipAddr)
+		VALUES (#{member_id}, #{name}, TO_DATE(#{birth}, 'YYYY-MM-DD'), 
+			#{email}, #{receive_email}, #{tel}, 
+			#{profile_photo, jdbcType=VARCHAR}, #{zip, jdbcType=VARCHAR},
+			#{addr1, jdbcType=VARCHAR}, #{addr2, jdbcType=VARCHAR},
+			#{ipAddr})
+    </insert>
+	
+    <update id="insertMember12" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT ALL
+		INTO member1(member_id, login_id, password, sns_provider, sns_id, 
+			enabled, created_at, update_at, failure_cnt)
+		VALUES (member_seq.NEXTVAL, #{login_id, jdbcType=VARCHAR}, #{password, jdbcType=VARCHAR}, 
+			#{sns_provider, jdbcType=VARCHAR}, #{sns_id, jdbcType=VARCHAR}, 
+			1, SYSDATE, SYSDATE, 0)
+		INTO member2(member_id, name, birth, email, receive_email, tel, 
+			profile_photo, zip, addr1, addr2, ipAddr)
+		VALUES (member_seq.CURRVAL, #{name}, TO_DATE(#{birth}, 'YYYY-MM-DD'), 
+			#{email}, #{receive_email}, #{tel}, 
+			#{profile_photo, jdbcType=VARCHAR}, #{zip, jdbcType=VARCHAR},
+			#{addr1, jdbcType=VARCHAR}, #{addr2, jdbcType=VARCHAR},
+			#{ipAddr})
+		SELECT * FROM dual
+    </update>
+
+    <update id="insertSnsMember" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT ALL
+		INTO member1(member_id, sns_provider, sns_id, 
+			enabled, created_at, update_at)
+		VALUES (#{member_id}, #{sns_provider}, #{sns_id}, 
+			1, SYSDATE, SYSDATE)
+		INTO member2(member_id, name, email, ipAddr)
+		VALUES (#{member_id}, #{name}, #{email, jdbcType=VARCHAR}, 
+			#{ipAddr, jdbcType=VARCHAR})
+		SELECT * FROM dual
+    </update>
+
+	<insert id="insertMemberStatus" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT INTO memberStatus(num, member_id, status_code, memo, register_id, reg_date)
+		VALUES (memberStatus_seq.NEXTVAL, #{member_id}, #{status_code}, #{memo}, #{register_id}, SYSDATE)
+	</insert>
+
+    <update id="updateMemberEnabled" parameterType="map">
+		UPDATE member1 SET enabled = #{enabled}
+		<where>
+			<choose>
+				<when test="login_id != null">
+					login_id = #{login_id}
+				</when>
+				<otherwise>
+					member_id = #{member_id}
+				</otherwise>
+			</choose>
+		</where>
+    </update>
+
+    <update id="updateMemberPassword" parameterType="com.sp.app.domain.dto.MemberDto">
+		UPDATE member1 SET password = #{password}, update_at = SYSDATE
+		WHERE login_id = #{login_id}
+    </update>
+
+    <update id="updateMember1" parameterType="com.sp.app.domain.dto.MemberDto">
+		UPDATE member1 SET login_id = #{login_id, jdbcType=VARCHAR}, 
+			sns_provider = #{sns_provider, jdbcType=VARCHAR}, sns_id = #{sns_id, jdbcType=VARCHAR}, 
+			password = #{password}, update_at = SYSDATE
+		WHERE member_id = #{member_id}
+    </update>
+	
+    <update id="updateMember2" parameterType="com.sp.app.domain.dto.MemberDto">
+		UPDATE member2 SET email = #{email}, 
+			birth = TO_DATE(#{birth}, 'YYYY-MM-DD'), 
+			tel = #{tel, jdbcType=VARCHAR}, 
+			profile_photo = #{profile_photo, jdbcType=VARCHAR}, 
+			zip = #{zip, jdbcType=VARCHAR},
+			addr1 = #{addr1, jdbcType=VARCHAR}, addr2 = #{addr2, jdbcType=VARCHAR},
+			receive_email = #{receive_email}
+		WHERE member_id = #{member_id}
+    </update>
+
+    <update id="deleteProfilePhoto" parameterType="map">
+		UPDATE member2 SET profile_photo = ''
+		WHERE member_id = #{member_id}
+    </update>
+
+	<!-- 로그인 시간 변경 -->
+	<update id="updateLastLogin" parameterType="Long">
+		UPDATE member1 SET last_login = SYSDATE, failure_cnt = 0
+		WHERE member_id = #{member_id}
+	</update>
+
+	<update id="updateLastLoginId" parameterType="String">
+		UPDATE member1 SET last_login = SYSDATE, failure_cnt = 0
+		WHERE login_id = #{login_id}
+	</update>
+
+	<!-- 회원 정보 -->
+	<select id="findById" parameterType="Long" resultType="com.sp.app.domain.dto.MemberDto">
+		SELECT m1.member_id, m1.login_id, password, sns_provider, sns_id, email,
+			enabled, created_at, update_at, last_login,
+			name, TO_CHAR(birth, 'YYYY-MM-DD') birth, email, tel, 
+			profile_photo, zip, addr1, addr2, receive_email,
+			authority
+		FROM member1 m1
+		LEFT OUTER JOIN member2 m2 ON m1.member_id = m2.member_id
+		LEFT OUTER JOIN memberAuthority m3 ON m1.login_id = m3.login_id
+		WHERE m1.member_id = #{member_id}
+	</select>
+
+	<select id="findByLoginId" parameterType="String" resultType="com.sp.app.domain.dto.MemberDto">
+		SELECT m1.member_id, m1.login_id, password, sns_provider, sns_id, email,
+			enabled, created_at, update_at, last_login,
+			name, TO_CHAR(birth, 'YYYY-MM-DD') birth, email, tel, 
+			profile_photo, zip, addr1, addr2, receive_email,
+			authority
+		FROM member1 m1
+		LEFT OUTER JOIN member2 m2 ON m1.member_id = m2.member_id
+		LEFT OUTER JOIN memberAuthority m3 ON m1.login_id = m3.login_id
+		WHERE m1.login_id = #{login_id}
+	</select>
+
+	<select id="getMemberId" parameterType="String" resultType="Long">
+		SELECT member_id
+		FROM member1
+		WHERE login_id = #{login_id}
+	</select>
+
+	<!-- 패스워드 실패 횟수 -->
+	<select id="checkFailureCount" parameterType="String" resultType="Integer">
+		SELECT NVL(failure_cnt, 0) failure_cnt
+		FROM member1
+		WHERE login_id = #{login_id}
+	</select>
+	
+	<!-- 패스워드 실패 횟수 초기화 -->
+	<update id="updateFailureCountReset" parameterType="String">
+		UPDATE member1 SET failure_cnt = 0
+		WHERE login_id = #{login_id}
+	</update>
+	
+	<!-- 패스워드 실패 횟수 증가 -->
+	<update id="updateFailureCount" parameterType="String">
+		UPDATE member1 SET failure_cnt = failure_cnt + 1
+		WHERE login_id = #{login_id}
+	</update>
+	
+	<!-- 회원 정보 삭제 -->
+    <delete id="deleteMember1" parameterType="map">
+		DELETE FROM member1
+		WHERE member_id = #{member_id}
+    </delete>
+    
+    <delete id="deleteMember2" parameterType="map">
+		DELETE FROM member2
+		WHERE member_id = #{member_id}
+    </delete>
+
+	<!-- 회원 검색 -->
+    <select id="listFindMember" parameterType="map" resultType="com.sp.app.domain.dto.MemberDto">
+		SELECT m1.member_id, NVL(login_id, sns_id) login_id, name
+		FROM member1 m1
+		JOIN member2 m2 ON m1.member_id = m2.member_id
+		<where>
+			m1.member_id != #{member_id}
+			AND
+			<if test="kwd != null and kwd != '' ">
+				<choose>
+					<when test="schType == 'login_id'">
+						( NSTR(m1.login_id, #{kwd}) &gt;= 1 OR INSTR(m1.sns_id, #{kwd}) &gt;= 1 )
+					</when>
+					<otherwise>
+						INSTR(${schType}, #{kwd}) &gt;= 1
+					</otherwise>
+				</choose>
+			</if>
+		</where>
+    </select>
+
+	<!-- 어쏘러티(권한) 테이블 --> 
+	<insert id="insertAuthority" parameterType="com.sp.app.domain.dto.MemberDto">
+		INSERT INTO memberAuthority(login_id, authority)
+		VALUES (#{login_id}, #{authority})
+	</insert>
+
+	<delete id="deleteAuthority" parameterType="map">
+		DELETE FROM memberAuthority
+		WHERE login_id = #{login_id}
+	</delete>
+
+	<select id="findByAuthority" parameterType="String" resultType="String">
+		SELECT authority
+		FROM memberAuthority
+		WHERE login_id = #{login_id}
+	</select>
+	
+	<insert id="insertRefreshToken" parameterType="com.sp.app.domain.dto.RefreshTokenDto">
+		INSERT INTO refreshToken(login_id, rt_value)
+		VALUES (#{login_id}, #{rt_value})
+	</insert>
+
+	<update id="updateRefreshToken" parameterType="com.sp.app.domain.dto.RefreshTokenDto">
+		UPDATE refreshToken SET rt_value = #{rt_value} 
+		WHERE login_id = #{login_id}
+	</update>
+    
+	<delete id="deleteRefreshToken" parameterType="String">
+		DELETE FROM refreshToken
+		WHERE login_id = #{login_id}
+	</delete>
+	
+	<select id="findByToken" parameterType="String" resultType="com.sp.app.domain.dto.RefreshTokenDto">
+		SELECT login_id, rt_value
+		FROM refreshToken
+		WHERE login_id = #{login_id}
+	</select>
+	
+</mapper>

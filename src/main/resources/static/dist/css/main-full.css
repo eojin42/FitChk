@@ -1,0 +1,24 @@
+@import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Meow+Script&family=PT+Serif+Caption:ital@0;1&family=Quicksand:wght@300..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Yesteryear&display=swap");
+
+/*----------------------------------
+# Full Screen
+----------------------------------*/
+.full-main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    	
+    position: relative;
+	width: 100%;
+	min-height: 100vh;
+    background-color: rgba(244,247,250, 0.7);	
+}
+
+@keyframes floating{
+  0%{
+    transform: rotate(0deg) translate(-10px) rotate(0deg);
+  }
+  100%{
+    transform: rotate(360deg) translate(-10px) rotate(-360deg);
+  }
+}
