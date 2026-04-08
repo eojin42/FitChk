@@ -45,7 +45,7 @@ public class MemberServiceImpl implements MemberService {
 	@Override
 	public void insertMember(MemberDto dto, String uploadPath) throws Exception {
 		try {
-			if (!dto.getSelectFile().isEmpty()) {
+			if (dto.getSelectFile() != null && !dto.getSelectFile().isEmpty()) {
 				String saveFilename = storageService.uploadFileToServer(dto.getSelectFile(), uploadPath);
 				dto.setProfile_photo(saveFilename);
 			}

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,6 +23,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.sp.app.security.JwtAuthenticationFilter;
 import com.sp.app.security.JwtTokenProvider;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 @EnableWebSecurity
 public class SpringSecurityConfig {
@@ -35,9 +38,10 @@ public class SpringSecurityConfig {
 			.csrf(csrf -> csrf.disable()) // API는 보통 CSRF 비활성화
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 미사용
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/auth/**", "/api/userIdCheck", "/api/signup").permitAll()
-				.anyRequest().authenticated() // 인증된 사용자만 가능
-			)
+				    .requestMatchers("/api/auth/**").permitAll()  // GET/POST 모두 허용
+				    .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/**").permitAll()
+				    .anyRequest().authenticated()
+				)
 			.addFilterBefore(new JwtAuthenticationFilter(tokenProvider),
 				UsernamePasswordAuthenticationFilter.class);
 
@@ -80,8 +84,9 @@ public class SpringSecurityConfig {
 		requestCache.setMatchingRequestParameterName(null);		
 		
 		String[] excludeUri = { "/", "/member/login", "/member/logout",
-				"/member/pwdFind", "/member/expired", "/dist/**",
-				"/uploads/image/**", "/uploads/editor/**", 
+				"/member/pwdFind", "/member/expired", "/member/userIdCheck", "/member/account","/member/me",
+				"/dist/**","/api/auth/**",
+				"/uploads/**", 
 				"/favicon.ico", "/WEB-INF/views/**"};
 		
 		http.cors(Customizer.withDefaults()) // CORS 설정 : 기본값 사용
@@ -114,8 +119,15 @@ public class SpringSecurityConfig {
 		);
 
 		http.exceptionHandling(exceptionConfig -> exceptionConfig
-			.accessDeniedPage("/member/noAuthorized")
-		);
+			    .accessDeniedPage("/member/noAuthorized")
+			    .authenticationEntryPoint((request, response, authException) -> {
+			        if (request.getRequestURI().startsWith("/api/")) {
+			            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+			        } else {
+			            response.sendRedirect("/member/login");
+			        }
+			    })
+			);
 		
 		return http.build();
 	}

@@ -31,6 +31,7 @@ public class MemberDto {
 	private String addr1;
 	private String addr2;
 	private String ipAddr;
+	private String styleTag;
 	
 	private MultipartFile selectFile;
 	
